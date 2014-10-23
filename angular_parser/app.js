@@ -3,6 +3,8 @@ var domParser = require('./compiler');
 var underscore = require('underscore');
 var dom = '<html>' +
     '<head></head>' +
+    '<style>.someClass{border: solid 1px;} .barClass{text-align: left;}</style>' +
+    '<script type="text/javascript">var foo = bar();</script>' +
     '<body>' +
         '<div class="container_div" ng-repeat="(key, val) in items | limit:3 as result track by item.visible">' +
             '<p class="space1" ng-if="val.visible">{{val.name + val.name.length | currencyUAH:"33"}} testing html parser<hr></p>' +
