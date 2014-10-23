@@ -42,34 +42,40 @@ var compiler = {
         var activeDirective = null,
             directoryObj    = null;
         underscore.each(domObj, function (val) {
-            if (val.type === 'tag') {
-                if (activeDirective = directiveHelper.checkDirective(val.attribs)) {
-                    directoryObj = directiveHelper.loadDirective(activeDirective, val.attribs, dataObj);
-                    if (directoryObj instanceof Error) {
-                        compiler.ErrorStack.push(directoryObj.toString());
-                    } else if (directoryObj) {
-                        htmlString += compiler.tagWrap(
-                            val,
-                            compilerHelper.filterAttribs(val.attribs, activeDirective.key),
-                            function () {
-                                return compiler.directiveProccessor(directoryObj, {dom: val, data: dataObj}, val.children, compiler.recurDom);
-                            }
-                        );
+            switch (val.type) {
+                case 'tag':
+                    if (activeDirective = directiveHelper.checkDirective(val.attribs)) {
+                        directoryObj = directiveHelper.loadDirective(activeDirective, val.attribs, dataObj);
+                        if (directoryObj instanceof Error) {
+                            compiler.ErrorStack.push(directoryObj.toString());
+                        } else if (directoryObj) {
+                            htmlString += compiler.tagWrap(
+                                val,
+                                compilerHelper.filterAttribs(val.attribs, activeDirective.key),
+                                function () {
+                                    return compiler.directiveProccessor(directoryObj, {dom: val, data: dataObj}, val.children, compiler.recurDom);
+                                }
+                            );
+                        }
                     }
-                }
-                if (!activeDirective && val.children && underscore.size(val.children)) {
-                    htmlString += compiler.tagWrap(val, val.attribs, function () {
-                        return compiler.recurDom(val.children, dataObj, '');
-                    });
-                } else if (!activeDirective) {
-                    htmlString += compiler.tagProccess(val.name, true, {});
-                    htmlString += compiler.tagProccess(val.name, false, {});
-                }
-
-            } else if (val.type === 'text') {
-                htmlString += compiler.textWrap(
-                    compilerHelper.valueInterpolate(val.data, dataObj)
-                );
+                    if (!activeDirective && val.children && underscore.size(val.children)) {
+                        htmlString += compiler.tagWrap(val, val.attribs, function () {
+                            return compiler.recurDom(val.children, dataObj, '');
+                        });
+                    } else if (!activeDirective) {
+                        htmlString += compiler.tagProccess(val.name, true, {});
+                        htmlString += compiler.tagProccess(val.name, false, {});
+                    }
+                    break;
+                case 'text' :
+                    htmlString += compiler.textWrap(
+                        compilerHelper.valueInterpolate(val.data, dataObj)
+                    );
+                    break;
+                case 'style' :
+                case 'script' :
+                    htmlString += compiler.createScriptStyle(val);
+                    break;
             }
         });
         return htmlString;
@@ -124,6 +130,17 @@ var compiler = {
         } else {
             return toOpen ? compiler.createSelfOpenTag(tagname, params) : '';
         }
+    },
+
+    createScriptStyle: function (val) {
+        var htmlString = '';
+        htmlString += compiler.createOpenTag(val.type, val.attribs);
+        if (val.children && val.children[0]) {
+            if (val.children[0].data && val.children[0].type && val.children[0].type === 'text')
+            htmlString += val.children[0].data;
+        }
+        htmlString += compiler.createCloseTag(val.type);
+        return htmlString;
     },
 
     createOpenTag: function (tagname, params) {
